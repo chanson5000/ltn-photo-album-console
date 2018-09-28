@@ -1,6 +1,4 @@
-﻿using LtnPhotoAlbum.Interface;
-
-namespace LtnPhotoAlbum.Model
+﻿namespace LtnPhotoAlbum.Model
 {
     public class Photo
     {
