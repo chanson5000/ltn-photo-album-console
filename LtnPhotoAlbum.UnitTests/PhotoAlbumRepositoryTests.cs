@@ -18,7 +18,7 @@ namespace LtnPhotoAlbum.UnitTests
         }
 
         [Test]
-        public async Task GetAllPhotose_ReturnsAllPhotos()
+        public async Task GetAllPhotos_ReturnsAllPhotos()
         {
             var expected = typeof(List<Photo>);
 
