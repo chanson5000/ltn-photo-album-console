@@ -19,7 +19,7 @@ namespace LtnPhotoAlbum.Control
                                          "'help' brings you to this screen.\n" +
                                          "'exit' to exit.";
 
-        private const string CommandPrompt = "Please enter a command: ";
+        private const string CommandPrompt = ">";
 
         private const string UnrecognizedCommand = "Un-recognized command. Try 'help'";
 
@@ -59,7 +59,7 @@ namespace LtnPhotoAlbum.Control
 
         public void ShowCommandPrompt()
         {
-            Console.WriteLine(CommandPrompt);
+            Console.Write(CommandPrompt);
         }
 
         public void Execute(string input)

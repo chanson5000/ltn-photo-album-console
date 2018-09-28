@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using LtnPhotoAlbum.Control;
 using LtnPhotoAlbum.Repository;
 
@@ -6,23 +7,25 @@ namespace LtnPhotoAlbum
 {
     public class Bootstrap
     {
-        private PhotoAlbumRepository _repository;
-        private ConsoleControl _consoleControl;
-        private string[] _args;
-
         public void Start(string[] args=null)
         {
-            _args = args;
-            _repository = new PhotoAlbumRepository();
-            _consoleControl = new ConsoleControl(_repository);
-
-            _consoleControl.ShowGreeting();
-            _consoleControl.ShowHelp();
-
-            while (_consoleControl.Option != ConsoleControl.Command.Exit)
+            PhotoAlbumRepository repository  = new PhotoAlbumRepository();
+            ConsoleControl consoleControl = new ConsoleControl(repository);
+            
+            if (args?.Length > 0)
             {
-                _consoleControl.ShowCommandPrompt();
-                _consoleControl.Execute(Console.ReadLine());
+                consoleControl.Execute(string.Join(" ", args));
+            }
+            else
+            {
+                consoleControl.ShowGreeting();
+                consoleControl.ShowHelp();
+
+                while (consoleControl.Option != ConsoleControl.Command.Exit)
+                {
+                    consoleControl.ShowCommandPrompt();
+                    consoleControl.Execute(Console.ReadLine());
+                }
             }
         }
     }

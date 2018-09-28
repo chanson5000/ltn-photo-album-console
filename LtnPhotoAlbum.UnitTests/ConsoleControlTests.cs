@@ -22,7 +22,7 @@ namespace LtnPhotoAlbum.UnitTests
                                             "'help' brings you to this screen.\n" +
                                             "'exit' to exit.";
 
-        private const string CommandPromptString = "Please enter a command: ";
+        private const string CommandPromptString = ">";
         private const string UnrecognizedCommandString = "Un-recognized command. Try 'help'";
         private const string InvalidPhotoAlbumArgumentString = "Invalid 'photo-album' argument. Must be a positive number.";
         private const string RetrievingAllPhotosString = "Retrieving all photos...";
@@ -78,7 +78,6 @@ namespace LtnPhotoAlbum.UnitTests
         public void ShowCommandPrompt_WritesCommandPromptString()
         {
             const string expected = CommandPromptString;
-            var parsedExpected = expected + Environment.NewLine;
 
             using (var result = new StringWriter())
             {
@@ -88,7 +87,7 @@ namespace LtnPhotoAlbum.UnitTests
 
                 var parsedResult = result.ToString();
 
-                Assert.That(parsedResult, Is.EqualTo(parsedExpected));
+                Assert.That(parsedResult, Is.EqualTo(expected));
             }
         }
 
