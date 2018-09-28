@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -17,15 +18,29 @@ namespace LtnPhotoAlbum.Repository
             _client = new HttpClient { BaseAddress = new Uri("https://jsonplaceholder.typicode.com/photos") };
             _client.DefaultRequestHeaders.Accept.Clear();
             _client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            _client.Timeout = TimeSpan.FromMilliseconds(4000);
         }
 
         public async Task<List<Photo>> GetAllPhotos()
         {
             List<Photo> photos = null;
-            HttpResponseMessage response = await _client.GetAsync(_client.BaseAddress);
-            if (response.IsSuccessStatusCode)
+
+            try
             {
-                photos = await response.Content.ReadAsAsync<List<Photo>>();
+                HttpResponseMessage response = await _client.GetAsync(_client.BaseAddress);
+                if (response.IsSuccessStatusCode)
+                {
+                    photos = await response.Content.ReadAsAsync<List<Photo>>();
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                var innerException = e.InnerException;
+                if (innerException != null)
+                {
+                    Console.WriteLine(innerException.Message);
+                }
             }
 
             return photos;
@@ -34,10 +49,23 @@ namespace LtnPhotoAlbum.Repository
         public async Task<List<Photo>> GetPhotosByAlbumId(int albumId)
         {
             List<Photo> photos = null;
-            HttpResponseMessage response = await _client.GetAsync(_client.BaseAddress + "?albumId=" + albumId);
-            if (response.IsSuccessStatusCode)
+
+            try
             {
-                photos = await response.Content.ReadAsAsync<List<Photo>>();
+                HttpResponseMessage response = await _client.GetAsync(_client.BaseAddress + "?albumId=" + albumId);
+                if (response.IsSuccessStatusCode)
+                {
+                    photos = await response.Content.ReadAsAsync<List<Photo>>();
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                var innerException = e.InnerException;
+                if (innerException != null)
+                {
+                    Console.WriteLine(innerException.Message);
+                }
             }
 
             return photos;
