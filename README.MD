@@ -12,6 +12,7 @@ You can launch the console application with LtnPhotoAlbum.exe, or pass arguments
 
 ## Details
 - C# .NET Console Application - Target .NET Framework 4.6.1
+- Unit tests with NUnit3
 
 ## Instructions
 - `git clone https://github.com/chanson5000/ltn-photo-album-console` to your desired directory.
