@@ -24,4 +24,4 @@ You can launch the console application with LtnPhotoAlbum.exe, or pass arguments
 [Cory Hanson](https://coryhanson.us)
 
 ## License
-[MIT](LICENSE.MD)
+[MIT](LICENSE)
