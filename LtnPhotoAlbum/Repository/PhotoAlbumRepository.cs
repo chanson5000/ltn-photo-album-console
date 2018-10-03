@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -26,7 +27,7 @@ namespace LtnPhotoAlbum.Repository
 
             try
             {
-                HttpResponseMessage response = await _client.GetAsync(_client.BaseAddress);
+                var response = await _client.GetAsync(_client.BaseAddress);
                 if (response.IsSuccessStatusCode)
                 {
                     photos = await response.Content.ReadAsAsync<List<Photo>>();
@@ -34,24 +35,24 @@ namespace LtnPhotoAlbum.Repository
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.WriteLine(e.Message);
                 var innerException = e.InnerException;
                 if (innerException != null)
                 {
-                    Console.WriteLine(innerException.Message);
+                    Debug.Print(innerException.Message);
                 }
             }
 
             return photos;
         }
 
-        public async Task<List<Photo>> GetPhotosByAlbumId(int albumId)
+        public async Task<List<Photo>> GetPhotosByAlbumId(ushort albumId)
         {
             List<Photo> photos = null;
 
             try
             {
-                HttpResponseMessage response = await _client.GetAsync(_client.BaseAddress + "?albumId=" + albumId);
+                var response = await _client.GetAsync(_client.BaseAddress + "?albumId=" + albumId);
                 if (response.IsSuccessStatusCode)
                 {
                     photos = await response.Content.ReadAsAsync<List<Photo>>();
@@ -59,11 +60,11 @@ namespace LtnPhotoAlbum.Repository
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.Print(e.Message);
                 var innerException = e.InnerException;
                 if (innerException != null)
                 {
-                    Console.WriteLine(innerException.Message);
+                    Debug.Print(innerException.Message);
                 }
             }
 
