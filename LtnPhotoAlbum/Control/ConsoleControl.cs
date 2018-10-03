@@ -41,21 +41,32 @@ namespace LtnPhotoAlbum.Control
             Console.Write(CommandPrompt);
         }
 
-        public void Execute(string input)
+        public void ParseInput(string[] input)
         {
             var command = new Command(input);
+            Execute(command);
+        }
 
+        public void ParseInput(string input)
+        {
+            var command = new Command(input);
+            Execute(command);
+        }
+
+        public void Execute(Command command)
+        {
             if (command.GetArg() == Command.Help)
             {
                 Console.WriteLine(HelpText);
             }
             else if (command.GetArg() == Command.PhotoAlbum)
             {
-                if (command.GetParam() != null)
-                {
-                    var photoPrintTask = PrintPhotos(command.GetParam());
-                    photoPrintTask.Wait();
-                }
+                var printPhotosTask = PrintPhotos(command.GetParam());
+                printPhotosTask.Wait();
+            }
+            else if (command.GetArg() != Command.Exit)
+            {
+                Console.WriteLine(UnrecognizedCommand);
             }
         }
 
@@ -67,7 +78,7 @@ namespace LtnPhotoAlbum.Control
 
             if (results == null)
             {
-                Console.WriteLine("Error retrieving results.");
+                Console.WriteLine("There was a problem retrieving the results.");
             }
             else
             {
