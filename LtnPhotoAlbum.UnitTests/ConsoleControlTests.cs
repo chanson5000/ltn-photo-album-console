@@ -148,11 +148,12 @@ namespace LtnPhotoAlbum.UnitTests
         }
 
         [Test]
-        public void ExecuteWithSingleInvalidOption_ReturnsUnrecognizedCommand()
+        public void ExecuteWithValidPhotoAlbumOptionButInvalidArgument_ReturnsArgumentUnrecognized(
+            [Values("photo-album -1", "photo-album asdf")]
+            string commandToExecute
+            )
         {
-            const string commandToExecute = "  ";
-
-            const string expected = ConsoleControl.UnrecognizedCommand + "\r\n";
+            const string expected = ConsoleControl.ProblemResults + "\r\n";
 
             using (_result)
             {
@@ -160,30 +161,9 @@ namespace LtnPhotoAlbum.UnitTests
 
                 _consoleControl.ParseInput(commandToExecute);
 
-                Assert.That(_result.ToString(), Is.EqualTo(expected));
+                Assert.That(_result.ToString(), Is.Not.EqualTo(expected));
             }
         }
-
-        //[Test]
-        //public void ExecuteWithValidPhotoAlbumOptionButInvalidArgument_ReturnsArgumentUnrecognized(
-        //    [Values("photo-album -1")]
-        //    string commandToExecute
-        //    )
-        //{
-        //    const string expected = InvalidPhotoAlbumArgumentString;
-        //    var parsedExpected = expected + Environment.NewLine;
-
-        //    using (var result = new StringWriter())
-        //    {
-        //        Console.SetOut(result);
-
-        //        _consoleControl.Execute(commandToExecute);
-
-        //        var parsedResult = result.ToString();
-
-        //        Assert.That(parsedResult, Is.EqualTo(parsedExpected));
-        //    }
-        //}
 
         [Test]
         public void ExecuteWithValidPhotoOption_ReturnsAllPhotos(
