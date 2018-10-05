@@ -50,7 +50,9 @@ namespace LtnPhotoAlbum.Repository
             }
             catch (Exception e)
             {
+                Debug.WriteLine(e.Message);
                 var innerException = e.InnerException;
+
                 if (innerException == null) throw;
                 throw innerException;
             }
