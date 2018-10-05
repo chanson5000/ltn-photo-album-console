@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 using LtnPhotoAlbum.Control;
 using LtnPhotoAlbum.Interface;
@@ -17,9 +18,9 @@ namespace LtnPhotoAlbum.UnitTests
         private ConsoleControl _consoleControl;
         private StringWriter _result;
 
-        private readonly List<Photo> _listOfPhotos = new List<Photo>()
+        private readonly List<Photo> _listOfPhotos = new List<Photo>
         {
-            new Photo()
+            new Photo
             {
                 Id = 1,
                 AlbumId = 1,
@@ -27,7 +28,7 @@ namespace LtnPhotoAlbum.UnitTests
                 Url = "http://www.url.com",
                 ThumbnailUrl = "http://www.thumbnailurl.com"
             },
-            new Photo()
+            new Photo
             {
                 Id = 2,
                 AlbumId = 2,
@@ -37,9 +38,9 @@ namespace LtnPhotoAlbum.UnitTests
             }
         };
 
-        private readonly List<Photo> _listOfPhotosByAlbum = new List<Photo>()
+        private readonly List<Photo> _listOfPhotosByAlbum = new List<Photo>
         {
-            new Photo()
+            new Photo
             {
                 Id = 1,
                 AlbumId = 1,
@@ -47,7 +48,7 @@ namespace LtnPhotoAlbum.UnitTests
                 Url = "http://www.url.com",
                 ThumbnailUrl = "http://www.thumbnailurl.com"
             },
-            new Photo()
+            new Photo
             {
                 Id = 2,
                 AlbumId = 1,
@@ -67,10 +68,30 @@ namespace LtnPhotoAlbum.UnitTests
             _result = new StringWriter();
         }
 
+        public void SetRepoAllPhotosResponse(List<Photo> mockResponse)
+        {
+            _mockRepository.Setup(x => x.GetAllPhotos()).Returns(Task.FromResult(mockResponse));
+        }
+
+        public void SetRepoPhotosByAlbumResponse(List<Photo> mockResonse)
+        {
+            _mockRepository.Setup(x => x.GetPhotosByAlbumId(1)).Returns(Task.FromResult(mockResonse));
+        }
+
+        public void SetRepoAllPhotos_ThrowsException(Exception exception)
+        {
+            _mockRepository.Setup(x => x.GetAllPhotos()).Throws(exception);
+        }
+
+        public void SetRepoPhotosByAlbumId_ThrowsException(Exception exception)
+        {
+            _mockRepository.Setup(x => x.GetPhotosByAlbumId(1)).Throws(exception);
+        }
+
         [Test]
         public void ShowGreeting_WritesGreetingString()
         {
-            const string expected = ConsoleControl.GreetingText + "\r\n";
+            const string expected = ConsoleControl.Greeting + "\r\n";
 
             using (_result)
             {
@@ -85,7 +106,7 @@ namespace LtnPhotoAlbum.UnitTests
         [Test]
         public void ShowHelp_WritesHelpString()
         {
-            const string expected = ConsoleControl.HelpText + "\r\n";
+            const string expected = ConsoleControl.Help + "\r\n";
 
             using (_result)
             {
@@ -113,11 +134,11 @@ namespace LtnPhotoAlbum.UnitTests
         }
 
         [Test]
-        public void ExecuteHelpCommand_ReturnsHelp()
+        public void InputHelpCommand_ReturnsHelp()
         {
             const string commandToExecute = "help";
 
-            const string expected = ConsoleControl.HelpText + "\r\n";
+            const string expected = ConsoleControl.Help + "\r\n";
 
             using (_result)
             {
@@ -130,8 +151,8 @@ namespace LtnPhotoAlbum.UnitTests
         }
 
         [Test]
-        public void ExecuteWithInvalidOption_ReturnsUnrecognizedCommand(
-            [Values("", "    ", "asdf", "adfsdf asdfas", "asdf asdf asdf")]
+        public void InputInvalidArg_ReturnsUnrecognizedCommand(
+            [Values("", "    ", "invalidArg", "invalidArg invalidParam", "invalidArg invalidParam extraParam")]
             string commandToExecute
             )
         {
@@ -148,12 +169,12 @@ namespace LtnPhotoAlbum.UnitTests
         }
 
         [Test]
-        public void ExecuteWithValidPhotoAlbumOptionButInvalidArgument_ReturnsArgumentUnrecognized(
-            [Values("photo-album -1", "photo-album asdf")]
+        public void InputValidPhotoAlbumArgWithInvalidParam_ReturnsInvalidPhotoCommand(
+            [Values("photo-album -1", "photo-album invalidParam", "photo-album invalidParam extraParam")]
             string commandToExecute
             )
         {
-            const string expected = ConsoleControl.ProblemResults + "\r\n";
+            const string expected = ConsoleControl.InvalidPhotoCommand + "\r\n";
 
             using (_result)
             {
@@ -161,21 +182,22 @@ namespace LtnPhotoAlbum.UnitTests
 
                 _consoleControl.ParseInput(commandToExecute);
 
-                Assert.That(_result.ToString(), Is.Not.EqualTo(expected));
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
 
         [Test]
-        public void ExecuteWithValidPhotoOption_ReturnsAllPhotos(
+        public void InputValidPhotoAlbumArg_ReturnsStatusAndAllPhotos(
             [Values("photo-album", "photo-album    ")]
             string commandToExecute
             )
         {
-            _mockRepository.Setup(x => x.GetAllPhotos()).Returns(Task.FromResult(_listOfPhotos));
+            SetRepoAllPhotosResponse(_listOfPhotos);
 
-            const string expected = "[1] Title\r\n" +
-                                 "[2] Another Title\r\n" +
-                                 "Returned 2 results.\r\n";
+            const string expected = ConsoleControl.RetrievingAllPhotos + "\r\n" +
+                                 "[1] Title" + "\r\n" +
+                                 "[2] Another Title" + "\r\n" +
+                                 "Returned 2 results." + "\r\n";
 
             using (_result)
             {
@@ -188,15 +210,16 @@ namespace LtnPhotoAlbum.UnitTests
         }
 
         [Test]
-        public void ExecuteWithValidPhotoAlbumArgument_ReturnsAlbumOne()
+        public void InputValidPhotoAlbumArgAndParam_ReturnsStatusAndPhotoAlbumResult()
         {
-            _mockRepository.Setup(x => x.GetPhotosByAlbumId(1)).Returns(Task.FromResult(_listOfPhotosByAlbum));
+            SetRepoPhotosByAlbumResponse(_listOfPhotosByAlbum);
 
             const string commandToExecute = "photo-album 1";
 
-            const string expected = "[1] Title\r\n" +
-                                 "[2] Another Title\r\n" +
-                                 "Returned 2 results.\r\n";
+            const string expected = ConsoleControl.RetrievingPhotosFromAlbum + "\r\n" +
+                                 "[1] Title" + "\r\n" +
+                                 "[2] Another Title" + "\r\n" +
+                                 "Returned 2 results." + "\r\n";
 
             using (_result)
             {
@@ -209,13 +232,14 @@ namespace LtnPhotoAlbum.UnitTests
         }
 
         [Test]
-        public void ExecuteAllPhotoWithNullRepoResponse_ReturnsErrorString()
+        public void InputAllAlbumWithRepoNullResponse_ReturnsStatusAndGenericError()
         {
-            _mockRepository.Setup(x => x.GetAllPhotos()).Returns(Task.FromResult(_nullListOfPhotos));
+            SetRepoAllPhotosResponse(_nullListOfPhotos);
 
             const string commandToExecute = "photo-album";
 
-            const string expected = ConsoleControl.ProblemResults + "\r\n";
+            const string expected = ConsoleControl.RetrievingAllPhotos + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
 
             using (_result)
             {
@@ -228,13 +252,138 @@ namespace LtnPhotoAlbum.UnitTests
         }
 
         [Test]
-        public void ExecutPhotoAlbumWithNullResponse_ReturnsErrorString()
+        public void InputOneAlbumWithRepoNullResponse_ReturnsStatusAndGenericError()
         {
-            _mockRepository.Setup(x => x.GetAllPhotos()).Returns(Task.FromResult(_nullListOfPhotos));
+            SetRepoPhotosByAlbumResponse(_nullListOfPhotos);
 
             const string commandToExecute = "photo-album 1";
 
-            const string expected = ConsoleControl.ProblemResults + "\r\n";
+            const string expected = ConsoleControl.RetrievingPhotosFromAlbum + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _consoleControl.ParseInput(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
+
+        [Test]
+        public void InputAllAlbumsWithRepoThrowsHttpRequestException_ReturnsMatchingExceptionError()
+        {
+            SetRepoAllPhotos_ThrowsException(new HttpRequestException());
+
+            const string commandToExecute = "photo-album";
+
+            const string expected = ConsoleControl.RetrievingAllPhotos + "\r\n" +
+                                    ConsoleControl.ProblemNetworkConnectivity + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _consoleControl.ParseInput(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
+
+        [Test]
+        public void InputAllAlbumsWithRepoThrowsTaskCancelledException_ReturnsMatchingExceptionError()
+        {
+            SetRepoAllPhotos_ThrowsException(new TaskCanceledException());
+
+            const string commandToExecute = "photo-album";
+
+            const string expected = ConsoleControl.RetrievingAllPhotos + "\r\n" +
+                                    ConsoleControl.ProblemRequestTimeout + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _consoleControl.ParseInput(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
+
+        [Test]
+        public void InputAllAlbumsWithRepoThrowsGenericException_ReturnsGenericError()
+        {
+            SetRepoAllPhotos_ThrowsException(new Exception());
+
+            const string commandToExecute = "photo-album";
+
+            const string expected = ConsoleControl.RetrievingAllPhotos + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _consoleControl.ParseInput(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
+
+        [Test]
+        public void InputByAlbumWithRepoThrowsHttpRequestException_ReturnsMatchingExceptionError()
+        {
+            SetRepoPhotosByAlbumId_ThrowsException(new HttpRequestException());
+
+            const string commandToExecute = "photo-album 1";
+
+            const string expected = ConsoleControl.RetrievingPhotosFromAlbum + "\r\n" +
+                                    ConsoleControl.ProblemNetworkConnectivity + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _consoleControl.ParseInput(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
+
+        [Test]
+        public void InputByAlbumWithRepoThrowsTaskCancelledException_ReturnsMatchingExceptionError()
+        {
+            SetRepoPhotosByAlbumId_ThrowsException(new TaskCanceledException());
+
+            const string commandToExecute = "photo-album 1";
+
+            const string expected = ConsoleControl.RetrievingPhotosFromAlbum + "\r\n" +
+                                    ConsoleControl.ProblemRequestTimeout + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _consoleControl.ParseInput(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
+
+        [Test]
+        public void InputByAlbumWithRepoThrowsGenericException_ReturnsGenericError()
+        {
+            SetRepoPhotosByAlbumId_ThrowsException(new Exception());
+
+            const string commandToExecute = "photo-album 1";
+
+            const string expected = ConsoleControl.RetrievingPhotosFromAlbum + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
 
             using (_result)
             {

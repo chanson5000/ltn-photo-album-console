@@ -36,7 +36,5 @@ namespace LtnPhotoAlbum.UnitTests
 
             Assert.That(result, Is.InstanceOf(expected));
         }
-
-
     }
 }
