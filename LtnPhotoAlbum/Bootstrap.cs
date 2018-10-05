@@ -9,7 +9,7 @@ namespace LtnPhotoAlbum
     {
         private readonly ConsoleControl _consoleControl = new ConsoleControl(new PhotoAlbumRepository());
 
-        public void Start(string[] args=null)
+        public void Start(string[] args = null)
         {
             if (args?.Length > 0)
             {
