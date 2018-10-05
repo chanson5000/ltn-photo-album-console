@@ -7,6 +7,6 @@ namespace LtnPhotoAlbum.Interface
     public interface IPhotoAlbumRepository
     {
         Task<List<Photo>> GetAllPhotos();
-        Task<List<Photo>> GetPhotosByAlbumId(int albumId);
+        Task<List<Photo>> GetPhotosByAlbumId(ushort albumId);
     }
 }

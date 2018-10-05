@@ -69,6 +69,7 @@
     <Compile Include="Bootstrap.cs" />
     <Compile Include="Interface\IPhotoAlbumRepository.cs" />
     <Compile Include="Control\ConsoleControl.cs" />
+    <Compile Include="Model\Command.cs" />
     <Compile Include="Model\Photo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

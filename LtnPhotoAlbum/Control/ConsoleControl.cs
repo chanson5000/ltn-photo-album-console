@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Net.Http;
 using System.Threading.Tasks;
 using LtnPhotoAlbum.Interface;
 using LtnPhotoAlbum.Model;
@@ -8,191 +10,124 @@ namespace LtnPhotoAlbum.Control
 {
     public class ConsoleControl
     {
-        private const string Exit = "exit";
-        private const string Help = "help";
-        private const string PhotoAlbum = "photo-album";
+        public const string Greeting = "Welcome to photo album.";
 
-        private const string GreetingText = "Welcome to photo album.";
-        private const string HelpText = "Commands:\n" +
-                                         "'photo-album' for an id and title list of all photos in photo album.\n" +
-                                         "'photo-album <#>' for an id and title list of all photos from album #.\n" +
-                                         "'help' brings you to this screen.\n" +
+        public const string Help = "Commands:" + "\r\n" +
+                                         "'photo-album' for an id and title list of all photos in photo album." + "\r\n" +
+                                         "'photo-album <#>' for an id and title list of all photos from album #." + "\r\n" +
+                                         "'help' brings you to this screen." + "\r\n" +
                                          "'exit' to exit.";
+        public const string CommandPrompt = ">";
 
-        private const string CommandPrompt = ">";
+        public const string RetrievingAllPhotos = "Retrieving all photos...";
+        public const string RetrievingPhotosFromAlbum = "Retrieving photos from album id...";
 
-        private const string UnrecognizedCommand = "Un-recognized command. Try 'help'";
+        public const string InvalidPhotoCommand = "Invalid 'photo-album' <#> command. # must be a positive integer.";
+        public const string UnrecognizedCommand = "Un-recognized command. Try 'help'";
 
-        private static readonly List<string> Commands = new List<string>
-        {
-            Exit,
-            Help,
-            PhotoAlbum
-        };
+        public const string ProblemNetworkConnectivity = "There was a problem with the network connection.";
+        public const string ProblemRequestTimeout = "The request timed out.";
+        public const string ProblemResults = "Unable to retrieve results.";
 
-        private ushort? _arg;
-        private bool _argError;
-        public string Option { get; private set; }
         private readonly IPhotoAlbumRepository _repository;
 
-        public ConsoleControl(IPhotoAlbumRepository repository)
-        {
-            _repository = repository;
-        }
+        public ConsoleControl(IPhotoAlbumRepository repository) => _repository = repository;
 
-        public sealed class Command
-        {
-            public const string Exit = ConsoleControl.Exit;
-            public const string Help = ConsoleControl.Help;
-            public const string PhotoAlbum = ConsoleControl.PhotoAlbum;
-        }
+        public void ShowGreeting() => Console.WriteLine(Greeting);
 
-        public void ShowGreeting()
-        {
-              Console.WriteLine(GreetingText);
-        }
+        public void ShowHelp() => Console.WriteLine(Help);
 
-        public void ShowHelp()
-        {
-            Console.WriteLine(HelpText);
-        }
+        public void ShowCommandPrompt() => Console.Write(CommandPrompt);
 
-        public void ShowCommandPrompt()
+        public void ParseInput(string[] input)
         {
-            Console.Write(CommandPrompt);
-        }
+            var command = new Command();
 
-        public void Execute(string input)
-        {
-            if (!IsValid(input))
+            if (input.Length > 0 && command.SetArg(input[0]))
             {
-                // Input is not valid.
-                Console.WriteLine(UnrecognizedCommand);
-            }
-            else
-            {
-                // Input is valid and parsed.
-                switch (Option)
+                if (input.Length > 1 && command.Arg == Command.PhotoAlbum)
                 {
-                    case Help:
-                        Console.WriteLine(HelpText);
-                        break;
-                    case PhotoAlbum when _arg != null:
-                        // List all photos with supplied album id.
-                        Console.WriteLine($"Retrieving photos for album # {_arg}");
-                        var photosByAlbumTask = PrintPhotosFromAlbumId(Convert.ToUInt16(_arg));
-                        photosByAlbumTask.Wait();
-                        break;
-                    case PhotoAlbum when _arg == null && _argError:
-                        // PhotoAlbum command had invalid argument.
-                        Console.WriteLine("Invalid 'photo-album' argument. Must be a positive number.");
-                        break;
-                    case PhotoAlbum:
-                        // All photos.
-                        Console.WriteLine("Retrieving all photos...");
-                        var allPhotosTask = PrintAllPhotos();
-                        allPhotosTask.Wait();
-                        break;
-                }
-            }
-        }
-
-        private bool IsValid(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                // Input is empty, reset all values.
-                Option = null;
-                _arg = null;
-                _argError = false;
-                return false;
-            }
-
-            input = input.Trim();
-
-            if (!input.Contains(" "))
-            {
-                // Input contained only one argument, validate.
-                if (Commands.Contains(input))
-                {
-                    // Option was valid.
-                    Option = input;
-                    _arg = null;
-                    _argError = false;
-                    return true;
-                }
-            }
-            else
-            {
-                // Input contained option and at least one argument, split and validate.
-                var paramSplit = input.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
-
-                if (Commands.Contains(paramSplit[0]))
-                {
-                    // Option is valid.
-                    Option = paramSplit[0];
-
-                    // Parse argument as positive integer.
-                    if (ushort.TryParse(paramSplit[1], out var parsedInt))
+                    if (command.SetParam(input[1]))
                     {
-                        // Integer was valid argument.
-                        _arg = parsedInt;
-                        _argError = false;
-                        return true;
+                        Execute(command);
+                        return;
                     }
-
-                    // Integer was invalide argument. Set _argError.
-                    _arg = null;
-                    _argError = true;
-                    return true;
+                    Console.WriteLine(InvalidPhotoCommand);
+                    return;
                 }
-
-                // Option was not valid.
+                Execute(command);
+                return;
             }
 
-            // Option was not valid, reset all values.
-            Option = null;
-            _arg = null;
-            _argError = false;
-            return false;
+            Console.WriteLine(UnrecognizedCommand);
         }
 
-        private async Task PrintAllPhotos()
+        public void ParseInput(string input)
         {
-            List<Photo> results = await _repository.GetAllPhotos();
-            if (results == null)
+            ParseInput(string.IsNullOrWhiteSpace(input) ? new string[0] : input.Split(new char[0], StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        private void Execute(Command command)
+        {
+            switch (command.Arg)
             {
-                Console.WriteLine("Error retrieving results.");
-            }
-            else
-            {
-                int numResults = 0;
-                foreach (Photo photo in results)
-                {
-                    Console.WriteLine($"[{photo.Id}] {photo.Title}");
-                    numResults++;
-                }
-                Console.WriteLine($"Returned {numResults} results.");
+                case Command.Help:
+                    Console.WriteLine(Help);
+                    break;
+                case Command.PhotoAlbum:
+                    Console.WriteLine(command.Param == null ? RetrievingAllPhotos : RetrievingPhotosFromAlbum);
+                    var printPhotosTask = PrintPhotos(command.Param);
+                    printPhotosTask.Wait();
+                    break;
+                default:
+                    if (command.Arg != Command.Exit)
+                    {
+                        Console.WriteLine(UnrecognizedCommand);
+                    }
+                    break;
             }
         }
 
-        private async Task PrintPhotosFromAlbumId(int albumId)
+        private async Task PrintPhotos(ushort? albumId = null)
         {
-            List<Photo> results = await _repository.GetPhotosByAlbumId(albumId);
+            List<Photo> results;
+            try
+            {
+                results = albumId == null
+                    ? await _repository.GetAllPhotos()
+                    : await _repository.GetPhotosByAlbumId((ushort)albumId);
+            }
+            catch (HttpRequestException e)
+            {
+                Debug.WriteLine(e.Message);
+                Console.WriteLine(ProblemNetworkConnectivity);
+                results = null;
+            }
+            catch (TaskCanceledException e)
+            {
+                Debug.WriteLine(e.Message);
+                Console.WriteLine(ProblemRequestTimeout);
+                results = null;
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e.Message);
+                results = null;
+            }
+
             if (results == null)
             {
-                Console.WriteLine("Error retrieving results.");
+                Console.WriteLine(ProblemResults);
+                return;
             }
-            else
+
+            var numResults = 0;
+            foreach (var photo in results)
             {
-                int numResults = 0;
-                foreach (Photo photo in results)
-                {
-                    Console.WriteLine($"[{photo.Id}] {photo.Title}");
-                    numResults++;
-                }
-                Console.WriteLine($"Returned {numResults} results.");
+                Console.WriteLine($"[{photo.Id}] {photo.Title}");
+                numResults++;
             }
+            Console.WriteLine($"Returned {numResults} results.");
         }
     }
 }

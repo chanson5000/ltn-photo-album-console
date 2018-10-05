@@ -1,29 +1,31 @@
 ﻿using System;
 using LtnPhotoAlbum.Control;
+using LtnPhotoAlbum.Model;
 using LtnPhotoAlbum.Repository;
 
 namespace LtnPhotoAlbum
 {
     public class Bootstrap
     {
-        public void Start(string[] args=null)
+        private readonly ConsoleControl _consoleControl = new ConsoleControl(new PhotoAlbumRepository());
+
+        public void Start(string[] args = null)
         {
-            PhotoAlbumRepository repository  = new PhotoAlbumRepository();
-            ConsoleControl consoleControl = new ConsoleControl(repository);
-            
             if (args?.Length > 0)
             {
-                consoleControl.Execute(string.Join(" ", args));
+                _consoleControl.ParseInput(args);
             }
             else
             {
-                consoleControl.ShowGreeting();
-                consoleControl.ShowHelp();
+                _consoleControl.ShowGreeting();
+                _consoleControl.ShowHelp();
 
-                while (consoleControl.Option != ConsoleControl.Command.Exit)
+                string input = null;
+                while (input != Command.Exit)
                 {
-                    consoleControl.ShowCommandPrompt();
-                    consoleControl.Execute(Console.ReadLine());
+                    _consoleControl.ShowCommandPrompt();
+                    input = Console.ReadLine();
+                    _consoleControl.ParseInput(input);
                 }
             }
         }

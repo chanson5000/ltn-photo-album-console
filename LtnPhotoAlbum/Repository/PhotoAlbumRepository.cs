@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -20,51 +21,40 @@ namespace LtnPhotoAlbum.Repository
             _client.Timeout = TimeSpan.FromMilliseconds(4000);
         }
 
-        public async Task<List<Photo>> GetAllPhotos()
+        public async Task<List<Photo>> GetAllPhotos() => await GetPhotos();
+
+        public async Task<List<Photo>> GetPhotosByAlbumId(ushort albumId) => await GetPhotos(albumId);
+
+        private async Task<List<Photo>> GetPhotos(ushort? albumId = null)
         {
             List<Photo> photos = null;
 
             try
             {
-                HttpResponseMessage response = await _client.GetAsync(_client.BaseAddress);
+                var response = albumId == null
+                    ? await _client.GetAsync(_client.BaseAddress)
+                    : await _client.GetAsync(_client.BaseAddress + "?albumId=" + albumId);
+
                 if (response.IsSuccessStatusCode)
                 {
                     photos = await response.Content.ReadAsAsync<List<Photo>>();
                 }
             }
-            catch (Exception e)
+            catch (HttpRequestException)
             {
-                Console.WriteLine(e.Message);
-                var innerException = e.InnerException;
-                if (innerException != null)
-                {
-                    Console.WriteLine(innerException.Message);
-                }
+                throw;
             }
-
-            return photos;
-        }
-
-        public async Task<List<Photo>> GetPhotosByAlbumId(int albumId)
-        {
-            List<Photo> photos = null;
-
-            try
+            catch (TaskCanceledException)
             {
-                HttpResponseMessage response = await _client.GetAsync(_client.BaseAddress + "?albumId=" + albumId);
-                if (response.IsSuccessStatusCode)
-                {
-                    photos = await response.Content.ReadAsAsync<List<Photo>>();
-                }
+                throw;
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.WriteLine(e.Message);
                 var innerException = e.InnerException;
-                if (innerException != null)
-                {
-                    Console.WriteLine(innerException.Message);
-                }
+
+                if (innerException == null) throw;
+                throw innerException;
             }
 
             return photos;

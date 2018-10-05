@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using LtnPhotoAlbum.Control;
 using NUnit.Framework;
 
 namespace LtnPhotoAlbum.UnitTests
@@ -8,51 +9,67 @@ namespace LtnPhotoAlbum.UnitTests
     [TestFixture]
     public class BootstrapTests
     {
-        private const string UnrecognizedCommandString = "Un-recognized command. Try 'help'";
-        private const int WaitTime = 3000;
+        private StringWriter _result;
+        private Bootstrap _bootstrap;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _bootstrap = new Bootstrap();
+            _result = new StringWriter();
+        }
 
         [Test]
         public void OnStartWithNoArgs_ShowGreetingAndHelp()
         {
-            var expected = "Welcome to photo album." + Environment.NewLine +
-                           "Commands:\n" +
-                           "'photo-album' for an id and title list of all photos in photo album.\n" +
-                           "'photo-album <#>' for an id and title list of all photos from album #.\n" +
-                           "'help' brings you to this screen.\n" +
-                           "'exit' to exit." + Environment.NewLine +
-                           ">";
+            const string expected = ConsoleControl.Greeting + "\r\n" +
+                                    ConsoleControl.Help + "\r\n" +
+                                    ConsoleControl.CommandPrompt;
 
-            using (var result = new StringWriter())
+            using (_result)
             {
-                Console.SetOut(result);
+                Console.SetOut(_result);
 
-                Bootstrap bootstrap = new Bootstrap();
-
-                var task = new Task(() => bootstrap.Start());
+                var task = new Task(() => _bootstrap.Start());
                 task.Start();
-                task.Wait(WaitTime);
-                var parsedResult = result.ToString();
-                Assert.That(parsedResult, Is.EqualTo(expected));
+                task.Wait(3000);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
 
         [Test]
-        public void OnStartWithInvalidArgs_ShowError()
+        public void OnStartWithInvalidArgs_ShowError(
+            [Values(new[] {"invalidArg"}, new[] {"invalidArg", "invalidParam"} )]
+            string[] commandToExecute
+            )
         {
-            var commandToExecute = new[] {"invalid"};
+            const string expected = ConsoleControl.UnrecognizedCommand + "\r\n";
 
-            const string expected = UnrecognizedCommandString;
-            var parsedExpected = expected + Environment.NewLine;
-
-            using (var result = new StringWriter())
+            using (_result)
             {
-                Console.SetOut(result);
+                Console.SetOut(_result);
 
-                Bootstrap bootstrap = new Bootstrap();
-                bootstrap.Start(commandToExecute);
+                _bootstrap.Start(commandToExecute);
 
-                var parsedResult = result.ToString();
-                Assert.That(parsedResult, Is.EqualTo(parsedExpected));
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
+
+        [Test]
+        public void OnStartWithValidPhotoArgAndInvalidPhotoParam_ShowPhotoAlbumError()
+        {
+            var commandToExecute = new[] {"photo-album", "invalidParam"};
+
+            const string expected = ConsoleControl.InvalidPhotoCommand + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _bootstrap.Start(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
 
@@ -64,18 +81,16 @@ namespace LtnPhotoAlbum.UnitTests
         {
             var commandToExecute = commandToParse.Split();
 
-            const string expected = UnrecognizedCommandString;
-            var parsedExpected = expected + Environment.NewLine + ">";
+            const string expected = ConsoleControl.UnrecognizedCommand + "\r\n";
 
-            using (var result = new StringWriter())
+            using (_result)
             {
-                Console.SetOut(result);
+                Console.SetOut(_result);
 
-                Bootstrap bootstrap = new Bootstrap();
-                bootstrap.Start(commandToExecute);
+                _bootstrap.Start(commandToExecute);
 
-                var parsedResult = result.ToString();
-                Assert.That(parsedResult, Is.Not.EqualTo(parsedExpected));
+                var parsedResult = _result.ToString();
+                Assert.That(parsedResult, Is.Not.EqualTo(expected));
             }
         }
     }

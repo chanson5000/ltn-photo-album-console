@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 using LtnPhotoAlbum.Control;
 using LtnPhotoAlbum.Interface;
@@ -15,302 +16,382 @@ namespace LtnPhotoAlbum.UnitTests
     {
         private Mock<IPhotoAlbumRepository> _mockRepository;
         private ConsoleControl _consoleControl;
-        private const string GreetingString = "Welcome to photo album.";
-        private const string HelpString = "Commands:\n" +
-                                            "'photo-album' for an id and title list of all photos in photo album.\n" +
-                                            "'photo-album <#>' for an id and title list of all photos from album #.\n" +
-                                            "'help' brings you to this screen.\n" +
-                                            "'exit' to exit.";
+        private StringWriter _result;
 
-        private const string CommandPromptString = ">";
-        private const string UnrecognizedCommandString = "Un-recognized command. Try 'help'";
-        private const string InvalidPhotoAlbumArgumentString = "Invalid 'photo-album' argument. Must be a positive number.";
-        private const string RetrievingAllPhotosString = "Retrieving all photos...";
-        private const string ErrorRetrievingResultsString = "Error retrieving results.";
+        private readonly List<Photo> _listOfPhotos = new List<Photo>
+        {
+            new Photo
+            {
+                Id = 1,
+                AlbumId = 1,
+                Title = "Title",
+                Url = "http://www.url.com",
+                ThumbnailUrl = "http://www.thumbnailurl.com"
+            },
+            new Photo
+            {
+                Id = 2,
+                AlbumId = 2,
+                Title = "Another Title",
+                Url = "http://www.url2.com",
+                ThumbnailUrl = "http://www.thumbnailurl2.com"
+            }
+        };
 
+        private readonly List<Photo> _listOfPhotosByAlbum = new List<Photo>
+        {
+            new Photo
+            {
+                Id = 1,
+                AlbumId = 1,
+                Title = "Title",
+                Url = "http://www.url.com",
+                ThumbnailUrl = "http://www.thumbnailurl.com"
+            },
+            new Photo
+            {
+                Id = 2,
+                AlbumId = 1,
+                Title = "Another Title",
+                Url = "http://www.url2.com",
+                ThumbnailUrl = "http://www.thumbnailurl2.com"
+            }
+        };
 
+        private readonly List<Photo> _nullListOfPhotos = null;
 
         [SetUp]
         public void SetUp()
         {
             _mockRepository = new Mock<IPhotoAlbumRepository>();
             _consoleControl = new ConsoleControl(_mockRepository.Object);
+            _result = new StringWriter();
+        }
 
+        public void SetRepoAllPhotosResponse(List<Photo> mockResponse)
+        {
+            _mockRepository.Setup(x => x.GetAllPhotos()).Returns(Task.FromResult(mockResponse));
+        }
+
+        public void SetRepoPhotosByAlbumResponse(List<Photo> mockResonse)
+        {
+            _mockRepository.Setup(x => x.GetPhotosByAlbumId(1)).Returns(Task.FromResult(mockResonse));
+        }
+
+        public void SetRepoAllPhotos_ThrowsException(Exception exception)
+        {
+            _mockRepository.Setup(x => x.GetAllPhotos()).Throws(exception);
+        }
+
+        public void SetRepoPhotosByAlbumId_ThrowsException(Exception exception)
+        {
+            _mockRepository.Setup(x => x.GetPhotosByAlbumId(1)).Throws(exception);
         }
 
         [Test]
         public void ShowGreeting_WritesGreetingString()
         {
-            const string expected = GreetingString;
-            var parsedExpected = expected + Environment.NewLine;
+            const string expected = ConsoleControl.Greeting + "\r\n";
 
-            using (var result = new StringWriter())
+            using (_result)
             {
-                Console.SetOut(result);
+                Console.SetOut(_result);
 
                 _consoleControl.ShowGreeting();
 
-                var parsedResult = result.ToString();
-
-                Assert.That(parsedResult, Is.EqualTo(parsedExpected));
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
 
         [Test]
         public void ShowHelp_WritesHelpString()
         {
-            const string expected = HelpString;
-            var parsedExpected = expected + Environment.NewLine;
+            const string expected = ConsoleControl.Help + "\r\n";
 
-            using (var result = new StringWriter())
+            using (_result)
             {
-                Console.SetOut(result);
+                Console.SetOut(_result);
 
                 _consoleControl.ShowHelp();
 
-                var parsedResult = result.ToString();
-
-                Assert.That(parsedResult, Is.EqualTo(parsedExpected));
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
 
         [Test]
         public void ShowCommandPrompt_WritesCommandPromptString()
         {
-            const string expected = CommandPromptString;
+            const string expected = ConsoleControl.CommandPrompt;
 
-            using (var result = new StringWriter())
+            using (_result)
             {
-                Console.SetOut(result);
+                Console.SetOut(_result);
 
                 _consoleControl.ShowCommandPrompt();
 
-                var parsedResult = result.ToString();
-
-                Assert.That(parsedResult, Is.EqualTo(expected));
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
 
         [Test]
-        public void ExecuteHelpCommand_ReturnsHelp()
+        public void InputHelpCommand_ReturnsHelp()
         {
-            var commandToExecute = "help";
+            const string commandToExecute = "help";
 
-            const string expected = HelpString;
-            var parsedExpected = expected + Environment.NewLine;
+            const string expected = ConsoleControl.Help + "\r\n";
 
-            using (var result = new StringWriter())
+            using (_result)
             {
-                Console.SetOut(result);
+                Console.SetOut(_result);
 
-                _consoleControl.Execute(commandToExecute);
+                _consoleControl.ParseInput(commandToExecute);
 
-                var parsedResult = result.ToString();
-
-                Assert.That(parsedResult, Is.EqualTo(parsedExpected));
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
 
         [Test]
-        public void ExecuteWithInvalidOption_ReturnsUnrecognizedCommand(
-            [Values("", "    ", "asdf", "adfsdf asdfas", "asdf asdf asdf")]
+        public void InputInvalidArg_ReturnsUnrecognizedCommand(
+            [Values("", "    ", "invalidArg", "invalidArg invalidParam", "invalidArg invalidParam extraParam")]
             string commandToExecute
             )
         {
-            const string expected = UnrecognizedCommandString;
-            var parsedExpected = expected + Environment.NewLine;
+            const string expected = ConsoleControl.UnrecognizedCommand + "\r\n";
 
-            using (var result = new StringWriter())
+            using (_result)
             {
-                Console.SetOut(result);
+                Console.SetOut(_result);
 
-                _consoleControl.Execute(commandToExecute);
+                _consoleControl.ParseInput(commandToExecute);
 
-                var parsedResult = result.ToString();
-
-                Assert.That(parsedResult, Is.EqualTo(parsedExpected));
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
 
         [Test]
-        public void ExecuteWithSingleInvalidOption_ReturnsUnrecognizedCommand()
-        {
-            var commandToExecute = "  ";
-
-            const string expected = UnrecognizedCommandString;
-            var parsedExpected = expected + Environment.NewLine;
-
-            using (var result = new StringWriter())
-            {
-                Console.SetOut(result);
-
-                _consoleControl.Execute(commandToExecute);
-
-                var parsedResult = result.ToString();
-
-                Assert.That(parsedResult, Is.EqualTo(parsedExpected));
-            }
-        }
-
-        [Test]
-        public void ExecuteWithValidPhotoAlbumOptionButInvalidArgument_ReturnsArgumentUnrecognized(
-            [Values("photo-album -1", "photo-album somestring")]
+        public void InputValidPhotoAlbumArgWithInvalidParam_ReturnsInvalidPhotoCommand(
+            [Values("photo-album -1", "photo-album invalidParam", "photo-album invalidParam extraParam")]
             string commandToExecute
             )
         {
-            const string expected = InvalidPhotoAlbumArgumentString;
-            var parsedExpected = expected + Environment.NewLine;
+            const string expected = ConsoleControl.InvalidPhotoCommand + "\r\n";
 
-            using (var result = new StringWriter())
+            using (_result)
             {
-                Console.SetOut(result);
+                Console.SetOut(_result);
 
-                _consoleControl.Execute(commandToExecute);
+                _consoleControl.ParseInput(commandToExecute);
 
-                var parsedResult = result.ToString();
-
-                Assert.That(parsedResult, Is.EqualTo(parsedExpected));
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
 
         [Test]
-        public void ExecuteWithValidPhotoOption_ReturnsAllPhotos(
+        public void InputValidPhotoAlbumArg_ReturnsStatusAndAllPhotos(
             [Values("photo-album", "photo-album    ")]
             string commandToExecute
             )
         {
-             List<Photo> listOfPhotos = new List<Photo>()
-             {
-                new Photo()
-                {
-                    Id = 1,
-                    AlbumId = 1,
-                    Title = "Title",
-                    Url = "http://www.url.com",
-                    ThumbnailUrl = "http://www.thumbnailurl.com"
-                },
-                new Photo()
-                {
-                    Id = 2,
-                    AlbumId = 2,
-                    Title = "Another Title",
-                    Url = "http://www.url2.com",
-                    ThumbnailUrl = "http://www.thumbnailurl2.com"
-                }
-            };
+            SetRepoAllPhotosResponse(_listOfPhotos);
 
-            _mockRepository.Setup(x => x.GetAllPhotos()).Returns(Task.FromResult(listOfPhotos));
+            const string expected = ConsoleControl.RetrievingAllPhotos + "\r\n" +
+                                 "[1] Title" + "\r\n" +
+                                 "[2] Another Title" + "\r\n" +
+                                 "Returned 2 results." + "\r\n";
 
-            const string expected = RetrievingAllPhotosString;
-            var parsedExpected = expected + Environment.NewLine +
-                                 "[1] Title" + Environment.NewLine +
-                                 "[2] Another Title" + Environment.NewLine +
-                                 "Returned 2 results." + Environment.NewLine;
-
-            using (var result = new StringWriter())
+            using (_result)
             {
-                Console.SetOut(result);
+                Console.SetOut(_result);
 
-                _consoleControl.Execute(commandToExecute);
+                _consoleControl.ParseInput(commandToExecute);
 
-                var parsedResult = result.ToString();
-
-                Assert.That(parsedResult, Is.EqualTo(parsedExpected));
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
 
         [Test]
-        public void ExecuteWithValidPhotoAlbumArgument_ReturnsAlbumOne()
+        public void InputValidPhotoAlbumArgAndParam_ReturnsStatusAndPhotoAlbumResult()
         {
-            var commandToExecute = "photo-album 1";
+            SetRepoPhotosByAlbumResponse(_listOfPhotosByAlbum);
 
-            List<Photo> listOfPhotos = new List<Photo>()
+            const string commandToExecute = "photo-album 1";
+
+            const string expected = ConsoleControl.RetrievingPhotosFromAlbum + "\r\n" +
+                                 "[1] Title" + "\r\n" +
+                                 "[2] Another Title" + "\r\n" +
+                                 "Returned 2 results." + "\r\n";
+
+            using (_result)
             {
-                new Photo()
-                {
-                    Id = 1,
-                    AlbumId = 1,
-                    Title = "Title",
-                    Url = "http://www.url.com",
-                    ThumbnailUrl = "http://www.thumbnailurl.com"
-                },
-                new Photo()
-                {
-                    Id = 2,
-                    AlbumId = 1,
-                    Title = "Another Title",
-                    Url = "http://www.url2.com",
-                    ThumbnailUrl = "http://www.thumbnailurl2.com"
-                }
-            };
+                Console.SetOut(_result);
 
-            _mockRepository.Setup(x => x.GetPhotosByAlbumId(1)).Returns(Task.FromResult(listOfPhotos));
+                _consoleControl.ParseInput(commandToExecute);
 
-            const string expected = "Retrieving photos for album # 1";
-            var parsedExpected = expected + Environment.NewLine +
-                                 "[1] Title" + Environment.NewLine +
-                                 "[2] Another Title" + Environment.NewLine +
-                                 "Returned 2 results." + Environment.NewLine;
-
-            using (var result = new StringWriter())
-            {
-                Console.SetOut(result);
-
-                _consoleControl.Execute(commandToExecute);
-
-                var parsedResult = result.ToString();
-
-                Assert.That(parsedResult, Is.EqualTo(parsedExpected));
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
 
         [Test]
-        public void ExecuteAllPhotoWithNullRepoResponse_ReturnsErrorString()
+        public void InputAllAlbumWithRepoNullResponse_ReturnsStatusAndGenericError()
         {
-            var commandToExecute = "photo-album";
+            SetRepoAllPhotosResponse(_nullListOfPhotos);
 
-            List<Photo> photos = null;
+            const string commandToExecute = "photo-album";
 
-            _mockRepository.Setup(x => x.GetAllPhotos()).Returns(Task.FromResult(photos));
+            const string expected = ConsoleControl.RetrievingAllPhotos + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
 
-            const string expected = RetrievingAllPhotosString;
-            var parsedExpected = expected + Environment.NewLine +
-                                 "Error retrieving results." + Environment.NewLine;
-
-            using (var result = new StringWriter())
+            using (_result)
             {
-                Console.SetOut(result);
+                Console.SetOut(_result);
 
-                _consoleControl.Execute(commandToExecute);
+                _consoleControl.ParseInput(commandToExecute);
 
-                var parsedResult = result.ToString();
-
-                Assert.That(parsedResult, Is.EqualTo(parsedExpected));
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
 
         [Test]
-        public void ExecutPhotoAlbumWithNullResponse_ReturnsErrorString()
+        public void InputOneAlbumWithRepoNullResponse_ReturnsStatusAndGenericError()
         {
-            var commandToExecute = "photo-album 1";
+            SetRepoPhotosByAlbumResponse(_nullListOfPhotos);
 
-            List<Photo> photos = null;
+            const string commandToExecute = "photo-album 1";
 
-            _mockRepository.Setup(x => x.GetAllPhotos()).Returns(Task.FromResult(photos));
+            const string expected = ConsoleControl.RetrievingPhotosFromAlbum + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
 
-            const string expected = "Retrieving photos for album # 1";
-            var parsedExpected = expected + Environment.NewLine +
-                                ErrorRetrievingResultsString + Environment.NewLine;
-
-            using (var result = new StringWriter())
+            using (_result)
             {
-                Console.SetOut(result);
+                Console.SetOut(_result);
 
-                _consoleControl.Execute(commandToExecute);
+                _consoleControl.ParseInput(commandToExecute);
 
-                var parsedResult = result.ToString();
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
 
-                Assert.That(parsedResult, Is.EqualTo(parsedExpected));
+        [Test]
+        public void InputAllAlbumsWithRepoThrowsHttpRequestException_ReturnsMatchingExceptionError()
+        {
+            SetRepoAllPhotos_ThrowsException(new HttpRequestException());
+
+            const string commandToExecute = "photo-album";
+
+            const string expected = ConsoleControl.RetrievingAllPhotos + "\r\n" +
+                                    ConsoleControl.ProblemNetworkConnectivity + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _consoleControl.ParseInput(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
+
+        [Test]
+        public void InputAllAlbumsWithRepoThrowsTaskCancelledException_ReturnsMatchingExceptionError()
+        {
+            SetRepoAllPhotos_ThrowsException(new TaskCanceledException());
+
+            const string commandToExecute = "photo-album";
+
+            const string expected = ConsoleControl.RetrievingAllPhotos + "\r\n" +
+                                    ConsoleControl.ProblemRequestTimeout + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _consoleControl.ParseInput(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
+
+        [Test]
+        public void InputAllAlbumsWithRepoThrowsGenericException_ReturnsGenericError()
+        {
+            SetRepoAllPhotos_ThrowsException(new Exception());
+
+            const string commandToExecute = "photo-album";
+
+            const string expected = ConsoleControl.RetrievingAllPhotos + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _consoleControl.ParseInput(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
+
+        [Test]
+        public void InputByAlbumWithRepoThrowsHttpRequestException_ReturnsMatchingExceptionError()
+        {
+            SetRepoPhotosByAlbumId_ThrowsException(new HttpRequestException());
+
+            const string commandToExecute = "photo-album 1";
+
+            const string expected = ConsoleControl.RetrievingPhotosFromAlbum + "\r\n" +
+                                    ConsoleControl.ProblemNetworkConnectivity + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _consoleControl.ParseInput(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
+
+        [Test]
+        public void InputByAlbumWithRepoThrowsTaskCancelledException_ReturnsMatchingExceptionError()
+        {
+            SetRepoPhotosByAlbumId_ThrowsException(new TaskCanceledException());
+
+            const string commandToExecute = "photo-album 1";
+
+            const string expected = ConsoleControl.RetrievingPhotosFromAlbum + "\r\n" +
+                                    ConsoleControl.ProblemRequestTimeout + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _consoleControl.ParseInput(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
+            }
+        }
+
+        [Test]
+        public void InputByAlbumWithRepoThrowsGenericException_ReturnsGenericError()
+        {
+            SetRepoPhotosByAlbumId_ThrowsException(new Exception());
+
+            const string commandToExecute = "photo-album 1";
+
+            const string expected = ConsoleControl.RetrievingPhotosFromAlbum + "\r\n" +
+                                    ConsoleControl.ProblemResults + "\r\n";
+
+            using (_result)
+            {
+                Console.SetOut(_result);
+
+                _consoleControl.ParseInput(commandToExecute);
+
+                Assert.That(_result.ToString(), Is.EqualTo(expected));
             }
         }
     }
