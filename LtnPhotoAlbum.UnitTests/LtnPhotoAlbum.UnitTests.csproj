@@ -76,7 +76,6 @@
     <Compile Include="ConsoleControlTests.cs" />
     <Compile Include="BootstrapTests.cs" />
     <Compile Include="PhotoAlbumRepositoryTests.cs" />
-    <Compile Include="PhotoModelTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

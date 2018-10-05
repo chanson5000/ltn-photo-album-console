@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.Remoting.Metadata.W3cXsd2001;
-using LtnPhotoAlbum.Control;
 
 namespace LtnPhotoAlbum.Model
 {
@@ -20,15 +18,13 @@ namespace LtnPhotoAlbum.Model
 
         private readonly string[] _commandArgs;
 
-        public Command(string commandString)
-        {
-            _commandArgs = Normalize(ToArgArray(commandString));
-        }
+        public Command(string commandString) => _commandArgs = Normalize(ToArgArray(commandString));
 
-        public Command(IReadOnlyList<string> commandArray)
-        {
-            _commandArgs = Normalize(commandArray);
-        }
+        public Command(IReadOnlyList<string> commandArray) => _commandArgs = Normalize(commandArray);
+
+        public string GetArg() => _commandArgs[0];
+
+        public ushort? GetParam() => ushort.TryParse(_commandArgs[1], out var result) ? (ushort?)result : null;
 
         private static string[] Normalize(IReadOnlyList<string> toNormalize)
         {
@@ -38,29 +34,10 @@ namespace LtnPhotoAlbum.Model
             return new[] { argument, parameter };
         }
 
-        private static string[] ToArgArray(string input)
-        {
-            return input.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
-        }
+        private static string[] ToArgArray(string input) => string.IsNullOrWhiteSpace(input) ? new[] { null, (string)null } : input.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
 
-        private static string ParseArg(string input)
-        {
-            return ValidArgs.Contains(input) ? input : null;
-        }
+        private static string ParseArg(string input) => ValidArgs.Contains(input) ? input : null;
 
-        private static string ParseParam(string input)
-        {
-            return ushort.TryParse(input, out var result) ? result.ToString() : null;
-        }
-
-        public string GetArg()
-        {
-            return _commandArgs[0];
-        }
-
-        public ushort? GetParam()
-        {
-            return ushort.TryParse(_commandArgs[1], out var result) ? (ushort?) result : null;
-        }
+        private static string ParseParam(string input) => ushort.TryParse(input, out var result) ? result.ToString() : null;
     }
 }
