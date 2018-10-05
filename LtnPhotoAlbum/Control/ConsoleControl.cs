@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using LtnPhotoAlbum.Interface;
 using LtnPhotoAlbum.Model;
@@ -8,38 +7,33 @@ namespace LtnPhotoAlbum.Control
 {
     public class ConsoleControl
     {
-        private const string GreetingText = "Welcome to photo album.";
-        private const string HelpText = "Commands:\n" +
-                                         "'photo-album' for an id and title list of all photos in photo album.\n" +
-                                         "'photo-album <#>' for an id and title list of all photos from album #.\n" +
-                                         "'help' brings you to this screen.\n" +
+
+        public const string GreetingText = "Welcome to photo album.";
+        public const string HelpText = "Commands:\r\n" +
+                                         "'photo-album' for an id and title list of all photos in photo album.\r\n" +
+                                         "'photo-album <#>' for an id and title list of all photos from album #.\r\n" +
+                                         "'help' brings you to this screen.\r\n" +
                                          "'exit' to exit.";
 
-        private const string CommandPrompt = ">";
+        public const string ProblemResults = "There was a problem retrieving the results.";
 
-        private const string UnrecognizedCommand = "Un-recognized command. Try 'help'";
+        public const string RetrievingAllPhotos = "Retrieving all photos...";
+
+        public const string RetriveingPhotosByAlbum = "Retrieving photos from album id";
+
+        public const string CommandPrompt = ">";
+
+        public const string UnrecognizedCommand = "Un-recognized command. Try 'help'";
 
         private readonly IPhotoAlbumRepository _repository;
 
-        public ConsoleControl(IPhotoAlbumRepository repository)
-        {
-            _repository = repository;
-        }
+        public ConsoleControl(IPhotoAlbumRepository repository) => _repository = repository;
 
-        public void ShowGreeting()
-        {
-              Console.WriteLine(GreetingText);
-        }
+        public void ShowGreeting() => Console.WriteLine(GreetingText);
 
-        public void ShowHelp()
-        {
-            Console.WriteLine(HelpText);
-        }
+        public void ShowHelp() => Console.WriteLine(HelpText);
 
-        public void ShowCommandPrompt()
-        {
-            Console.Write(CommandPrompt);
-        }
+        public void ShowCommandPrompt() => Console.Write(CommandPrompt);
 
         public void ParseInput(string[] input)
         {
@@ -53,7 +47,7 @@ namespace LtnPhotoAlbum.Control
             Execute(command);
         }
 
-        public void Execute(Command command)
+        private void Execute(Command command)
         {
             if (command.GetArg() == Command.Help)
             {
@@ -78,7 +72,7 @@ namespace LtnPhotoAlbum.Control
 
             if (results == null)
             {
-                Console.WriteLine("There was a problem retrieving the results.");
+                Console.WriteLine(ProblemResults);
             }
             else
             {
