@@ -40,24 +40,21 @@ namespace LtnPhotoAlbum.Repository
                     photos = await response.Content.ReadAsAsync<List<Photo>>();
                 }
             }
-            catch (AggregateException e)
+            catch (HttpRequestException)
             {
-                Debug.WriteLine(e.Message);
-                var innerException = e.InnerException;
-
-                if (innerException != null)
-                {
-                    Debug.Print(innerException.Message);
-                }
+                throw;
+            }
+            catch (TaskCanceledException)
+            {
+                throw;
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e.Message);
                 var innerException = e.InnerException;
-                if (innerException != null)
-                {
-                    Debug.Print(innerException.Message);
-                }
+
+                if (innerException == null) throw;
+                throw innerException;
             }
 
             return photos;
